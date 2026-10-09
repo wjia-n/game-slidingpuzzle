@@ -21,23 +21,45 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _nameCtrl = TextEditingController();
+  final _nameFocus = FocusNode();
   final List<TextEditingController> _partyCtrls =
       List.generate(4, (_) => TextEditingController());
+  final List<FocusNode> _partyFocus = List.generate(4, (_) => FocusNode());
 
   @override
   void initState() {
     super.initState();
     _nameCtrl.text = widget.settings.playerName;
+    _commitOnFocusLoss(
+        _nameFocus, () => widget.settings.setPlayerName(_nameCtrl.text));
     for (int i = 0; i < 4; i++) {
       _partyCtrls[i].text = widget.settings.partyNames[i];
+      final idx = i;
+      _commitOnFocusLoss(_partyFocus[idx],
+          () => widget.settings.setPartyName(idx, _partyCtrls[idx].text));
     }
+  }
+
+  /// Name edits also commit when the field loses focus (not just the
+  /// keyboard-done action), so renames are never silently dropped.
+  void _commitOnFocusLoss(FocusNode node, void Function() commit) {
+    node.addListener(() {
+      if (!node.hasFocus) {
+        commit();
+        setState(() {});
+      }
+    });
   }
 
   @override
   void dispose() {
     _nameCtrl.dispose();
+    _nameFocus.dispose();
     for (final c in _partyCtrls) {
       c.dispose();
+    }
+    for (final f in _partyFocus) {
+      f.dispose();
     }
     super.dispose();
   }
@@ -126,7 +148,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     )),
 
                 _section(t, 'RESTORER'),
-                _nameField(t, 'Your name', _nameCtrl,
+                _nameField(t, 'Your name', _nameCtrl, _nameFocus,
                     (v) => s.setPlayerName(v)),
                 const SizedBox(height: 10),
                 Text('PARTY RELAY NAMES (pass-and-play)',
@@ -136,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Padding(
                     padding: const EdgeInsets.only(bottom: 8),
                     child: _nameField(
-                        t, 'Player ${i + 1}', _partyCtrls[i],
+                        t, 'Player ${i + 1}', _partyCtrls[i], _partyFocus[i],
                         (v) => s.setPartyName(i, v)),
                   ),
 
@@ -387,7 +409,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _nameField(AtelierTheme t, String hint,
-      TextEditingController ctrl, ValueChanged<String> onDone) {
+      TextEditingController ctrl, FocusNode focus, ValueChanged<String> onDone) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
@@ -397,6 +419,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       child: TextField(
         controller: ctrl,
+        focusNode: focus,
         style: AtelierType.body(15, t),
         decoration: InputDecoration(
           hintText: hint,

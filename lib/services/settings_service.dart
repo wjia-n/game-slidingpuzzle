@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -40,7 +42,12 @@ class WorkshopSettings extends ChangeNotifier {
   static const _kSfx = 'sp_sfx_on';
   static const _kVolume = 'sp_volume';
   static const _kName = 'sp_player_name';
-  static const _kPartyNames = 'sp_party_names';
+  static const _kPartyNames = 'sp_party_names'; // legacy unordered StringSet key
+  /// Order-safe party-name storage: a single JSON string. Android's
+  /// SharedPreferences stores StringLists as an unordered StringSet, so the
+  /// old key scrambled name order on every app restart. Never use a
+  /// StringList for ordered data on Android.
+  static const _kPartyNamesJson = 'slidingpuzzle_player_names_json';
   static const _kTheme = 'sp_theme_id';
   static const _kTileStyle = 'sp_tile_style';
   static const _kFrameStyle = 'sp_frame_style';
@@ -52,6 +59,26 @@ class WorkshopSettings extends ChangeNotifier {
   static const _kCustomPrefix = 'sp_custom_';
 
   static const defaultPartyNames = ['Curator', 'Apprentice', 'Expert', 'Guest'];
+
+  /// Encode the 4 party names as one JSON string (order-preserving).
+  static String encodePlayerNames(List<String> names) => jsonEncode(names);
+
+  static String _cleanName(int i, Object? v) {
+    final s = v is String ? v.trim() : '';
+    return s.isEmpty ? defaultPartyNames[i] : s;
+  }
+
+  /// Decode persisted names; falls back to defaults on missing/corrupt data.
+  static List<String> decodePlayerNames(String? raw) {
+    if (raw == null) return List.of(defaultPartyNames);
+    try {
+      final d = jsonDecode(raw);
+      if (d is List && d.length == 4) {
+        return [for (int i = 0; i < 4; i++) _cleanName(i, d[i])];
+      }
+    } catch (_) {}
+    return List.of(defaultPartyNames);
+  }
 
   bool musicOn = true;
   bool sfxOn = true;
@@ -112,12 +139,17 @@ class WorkshopSettings extends ChangeNotifier {
     sfxOn = p.getBool(_kSfx) ?? true;
     volume = p.getDouble(_kVolume) ?? 0.8;
     playerName = p.getString(_kName) ?? 'Curator';
-    final pn = p.getStringList(_kPartyNames);
-    if (pn != null && pn.length == 4) {
-      partyNames = [
-        for (int i = 0; i < 4; i++)
-          pn[i].trim().isEmpty ? defaultPartyNames[i] : pn[i].trim()
-      ];
+    // Party names: prefer the order-safe JSON key. Fall back to the legacy
+    // StringList key once (one-time migration); it may already be scrambled
+    // on Android, which is exactly the bug this replaces.
+    final namesRaw = p.getString(_kPartyNamesJson);
+    if (namesRaw != null) {
+      partyNames = decodePlayerNames(namesRaw);
+    } else {
+      final pn = p.getStringList(_kPartyNames);
+      partyNames = (pn != null && pn.length == 4)
+          ? [for (int i = 0; i < 4; i++) _cleanName(i, pn[i])]
+          : List.of(defaultPartyNames);
     }
     themeId = p.getString(_kTheme) ?? 'conservator';
     tileStyle = (p.getInt(_kTileStyle) ?? 0).clamp(0, TileStyle.values.length - 1);
@@ -143,7 +175,8 @@ class WorkshopSettings extends ChangeNotifier {
     await p.setBool(_kSfx, sfxOn);
     await p.setDouble(_kVolume, volume);
     await p.setString(_kName, playerName);
-    await p.setStringList(_kPartyNames, partyNames);
+    await p.setString(_kPartyNamesJson, encodePlayerNames(partyNames));
+    await p.remove(_kPartyNames); // drop the legacy unordered key for good
     await p.setString(_kTheme, themeId);
     await p.setInt(_kTileStyle, tileStyle);
     await p.setInt(_kFrameStyle, frameStyle);
