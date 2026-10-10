@@ -538,12 +538,17 @@ class _GameScreenState extends State<GameScreen>
       builder: (context, constraints) {
         final side = min(constraints.maxWidth, constraints.maxHeight);
         final n = engine.size;
-        final cell = side / n;
         final frameStyle = widget.settings.frameStyleEnum;
+        // Frame padding shrinks the tile area: compute cell from the INNER size
+        // so the last row/column stays inside the frame.
+        final outerCell = side / n;
+        final framePad = _framePad(frameStyle, outerCell);
+        final inner = side - framePad * 2;
+        final cell = inner / n;
         return Container(
           width: side,
           height: side,
-          padding: EdgeInsets.all(_framePad(frameStyle, cell)),
+          padding: EdgeInsets.all(framePad),
           decoration: _frameDecoration(t, frameStyle),
           child: Stack(
             children: [
