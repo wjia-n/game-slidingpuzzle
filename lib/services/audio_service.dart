@@ -26,7 +26,6 @@ class WorkshopAudio {
 
   final Map<String, Uint8List> _cache = {};
 
-  int _musicGen = 0;
   bool _musicBusy = false;
   String? _currentTrack; // 'menu' | 'game' | null
   bool _pausedByLifecycle = false;
@@ -250,7 +249,6 @@ class WorkshopAudio {
   /// App-scoped stop: only when the user turns music OFF — never on
   /// screen navigation.
   Future<void> stopMusic() async {
-    ++_musicGen;
     while (_musicBusy) {
       await Future.delayed(const Duration(milliseconds: 30));
     }
