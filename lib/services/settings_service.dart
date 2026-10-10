@@ -90,7 +90,7 @@ class WorkshopSettings extends ChangeNotifier {
   int frameStyle = 0;
   int defaultSize = 4;
   GameMode defaultMode = GameMode.classic;
-  bool isPro = false;
+  bool isPro = true; // everything unlocked — no Pro version
   int dailyStreak = 0;
 
   /// Custom theme colors (ARGB ints).
@@ -158,7 +158,7 @@ class WorkshopSettings extends ChangeNotifier {
     defaultSize = (p.getInt(_kSize) ?? 4).clamp(3, 6);
     final mi = p.getInt(_kMode) ?? 0;
     defaultMode = GameMode.values[mi.clamp(0, GameMode.values.length - 1)];
-    isPro = p.getBool(_kIsPro) ?? false;
+    isPro = true; // everything unlocked
     dailyStreak = p.getInt(_kStreak) ?? 0;
     for (final k in _defaultCustomColors.keys) {
       customColors[k] =
