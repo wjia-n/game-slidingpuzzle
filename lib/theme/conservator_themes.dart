@@ -274,7 +274,7 @@ class ConservatorThemes {
 
 enum TileStyle {
   engraved('Engraved Serif', false),
-  roman('Roman Numerals', false),
+  roman('Ancient Numerals', false),
   inlay('Brass Inlay Ring', false),
   typewriter('Typewriter Plate', false),
   stamp('Conservator Stamp', true),

@@ -15,6 +15,9 @@ import 'package:audioplayers/audioplayers.dart';
 ///   where it left off instead of restarting or dying.
 /// - Every public method catches player errors; audio can never crash the app.
 class WorkshopAudio {
+  /// Per-game pitch character (slidingpuzzle): 1.22x. Makes SFX unique.
+  static const double _pitchMul = 1.220;
+
   static const int _rate = 22050;
   final AudioPlayer _sfx = AudioPlayer();
   final AudioPlayer _music = AudioPlayer();
@@ -95,6 +98,8 @@ class WorkshopAudio {
 
   List<double> _tone(double freq, double secs,
       {double freqEnd = 0, double attack = 0.02, double harmonics = 0.25}) {
+    freq *= _pitchMul;
+    freqEnd *= _pitchMul;
     final n = (_rate * secs).round();
     final out = List<double>.filled(n, 0);
     for (int i = 0; i < n; i++) {
@@ -180,38 +185,51 @@ class WorkshopAudio {
       _cache.putIfAbsent(key, () => _wav(build()));
 
   Uint8List _menuBytes() => _clip('music_menu', () {
-        // Warm museum-hall pad: Dm – Bb – F – C, 16s loop.
-        final seq = [
-          [146.83, 174.61, 293.66], // Dm
-          [116.54, 146.83, 233.08], // Bb
-          [174.61, 220.0, 349.23], // F
-          [130.81, 196.0, 261.63], // C
-        ];
+        // A arpeggiated 0 – 5 – 3 – 4, 16s loop. Unique to slidingpuzzle.
+        final notes = [220.00, 277.18, 329.63, 277.18, 369.99, 440.00, 554.37, 440.00, 293.66, 369.99, 440.00, 369.99, 329.63, 415.30, 493.88, 415.30];
         final out = <double>[];
-        for (final chord in seq) {
-          out.addAll(_padChord(chord, 4.0));
+        final noteLen = 16.0 / notes.length;
+        for (final n in notes) {
+          out.addAll(_tone(n, noteLen * 0.9, harmonics: 0.3));
+          final gap = List<double>.filled((_rate * noteLen * 0.1).round(), 0);
+          out.addAll(gap);
+        }
+        // Soft pad underneath
+        final pad = _padChord([220.00, 277.18, 329.63], 16.0);
+        for (int i = 0; i < out.length && i < pad.length; i++) {
+          out[i] += pad[i] * 0.3;
         }
         return out;
       });
 
+
   Uint8List _gameBytes() => _clip('music_game', () {
-        // Music-box plucks over a soft cello-ish drone, 14s loop.
-        final drone = _padChord([98.0, 146.83], 14.0);
-        final plucks = [
-          523.25, 587.33, 659.25, 783.99, 659.25, 587.33, 523.25, 440.0,
-          523.25, 659.25, 783.99, 880.0,
+        // A waltz 0 – 5 – 3 – 4, 12s loop. Unique to slidingpuzzle.
+        final seq = [
+          [220.00, 277.18, 329.63],
+          [369.99, 440.00, 554.37],
+          [293.66, 369.99, 440.00],
+          [329.63, 415.30, 493.88]
         ];
-        final n = (_rate * 14).round();
-        final out = List<double>.from(drone);
-        for (int k = 0; k < plucks.length; k++) {
-          final start = (n * k / plucks.length).round();
-          final tone = _tone(plucks[k], 0.55, harmonics: 0.4);
-          for (int i = 0; i < tone.length && start + i < n; i++) {
-            out[start + i] += tone[i] * 0.32;
-          }
+        final out = <double>[];
+        for (final chord in seq) {
+          // Waltz: bass on 1, chords on 2 and 3
+          final bass = _tone(chord[0] / 2, 0.8, harmonics: 0.3);
+          final ch1 = _padChord([chord[1], chord[2]], 0.7);
+          final ch2 = _padChord([chord[1], chord[2]], 0.7);
+          out.addAll(bass);
+          final gap1 = List<double>.filled((_rate * 0.2).round(), 0);
+          out.addAll(gap1);
+          out.addAll(ch1);
+          final gap2 = List<double>.filled((_rate * 0.2).round(), 0);
+          out.addAll(gap2);
+          out.addAll(ch2);
+          final gap3 = List<double>.filled((_rate * 0.2).round(), 0);
+          out.addAll(gap3);
         }
         return out;
       });
+
 
   // ------------------------------------------------------------------ SFX
   Future<void> _play(Uint8List bytes) async {
