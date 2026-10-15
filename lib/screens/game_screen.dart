@@ -541,10 +541,12 @@ class _GameScreenState extends State<GameScreen>
         final frameStyle = widget.settings.frameStyleEnum;
         // Frame padding shrinks the tile area: compute cell from the INNER size
         // so the last row/column stays inside the frame.
+        // Defensive: floor to 0.001px to guarantee n*cell <= inner even with
+        // floating-point rounding (prevents 1px clipping of last row/column).
         final outerCell = side / n;
         final framePad = _framePad(frameStyle, outerCell);
         final inner = side - framePad * 2;
-        final cell = inner / n;
+        final cell = (inner / n * 1000).floor() / 1000;
         return Container(
           width: side,
           height: side,
