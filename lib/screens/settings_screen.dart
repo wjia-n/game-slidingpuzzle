@@ -5,6 +5,7 @@ import '../theme/atelier.dart';
 import '../theme/conservator_themes.dart';
 import 'custom_theme_screen.dart';
 import 'pro_screen.dart';
+import '../transfer/transfer_ui.dart';
 
 /// Settings: brass plaque rows, physical lever toggles, canvas-size
 /// selector, theme / tile-style / frame pickers, renameable players.
@@ -90,6 +91,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+              TransferSaveTile(gameSlug: 'slidingpuzzle'),
                 Row(
                   children: [
                     BrassRoundButton(
