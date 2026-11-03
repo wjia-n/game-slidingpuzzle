@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../engine/sliding_engine.dart';
 import '../services/audio_service.dart';
@@ -336,9 +337,9 @@ class _MenuScreenState extends State<MenuScreen> {
                           color: t.brassLight, size: 18),
                       const SizedBox(width: 6),
                       Text(
-                        s.isPro
+                        defaultTargetPlatform == TargetPlatform.iOS ? '⭐ Gold Star' : (s.isPro
                             ? 'PRO WORKSHOP — unlocked'
-                            : 'Unlock the Pro Workshop',
+                            : 'Unlock the Pro Workshop'),
                         style: AtelierType.label(12, t,
                             color: t.brassLight),
                       ),
