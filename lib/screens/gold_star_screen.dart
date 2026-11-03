@@ -52,12 +52,12 @@ class _GoldStarScreenState extends State<GoldStarScreen> {
                                     fontSize: 28, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 12),
                             const Text(
-                              'Thank you — you are a Gold Star supporter!',
+                              '⭐ Gold Star earned — thank you!',
                               textAlign: TextAlign.center,
                             ),
                           ] else ...[
                             const Text(
-                              'Support the game with a Gold Star. '
+                              'Get a Gold Star. '
                               'The game stays fully unlocked.',
                               textAlign: TextAlign.center,
                             ),
